@@ -3,9 +3,31 @@
 import argparse
 import os
 
+class Entry():
+    def __init__ (self):
+        self.item={}
+    def set(self,key,value):
+        self.item[key]=value
+    def __str__(self):
+        if 'name' in self.item.keys():
+            s = self.item['name']
+        if 'email' in self.item.keys():
+            s += self.item['email']
+        return s
+
+class Databook():
+    def __init__(self):
+        self.entries = {}
+        self.format = {}
+    def set(self,key,value):
+        self.entries[key]=value
+    def ser_format(self,key,values):
+        pass
+
 def read_datafile(filename):
     datafile = os.path.expanduser(filename)
     db = {}
+    max_len = {}
     try:
         with open(datafile) as fin:
             new_cod = None

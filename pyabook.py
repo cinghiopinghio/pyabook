@@ -5,29 +5,25 @@ import os
 
 class Entry():
     def __init__ (self):
-        self.item={}
+        self.item={'name':'','email':''}
     def set(self,key,value):
         self.item[key]=value
     def __str__(self):
-        if 'name' in self.item.keys():
-            s = self.item['name']
-        if 'email' in self.item.keys():
-            s += self.item['email']
-        return s
+        return "{0} <{1}>".format(self.item['name'],self.item['email'])
 
 class Databook():
     def __init__(self):
         self.entries = {}
         self.format = {}
+        self.max_len = {}
     def set(self,key,value):
         self.entries[key]=value
-    def ser_format(self,key,values):
-        pass
+    def set_format(self,values):
+        self.format = values
 
 def read_datafile(filename):
     datafile = os.path.expanduser(filename)
-    db = {}
-    max_len = {}
+    db = Databook()
     try:
         with open(datafile) as fin:
             new_cod = None
@@ -36,24 +32,28 @@ def read_datafile(filename):
                 if char in ['#','"']:
                     continue
                 elif char == '[':
+                    if new_cod == 'format':
+                        db.set_format(entry)
+                    elif new_cod is not None:
+                        db.set(int(new_cod),entry)
+
                     new_cod = line.strip().strip('[]')
-                    if new_cod != 'format':
-                        new_cod = int(new_cod)
-                        db[new_cod] = dict()
-                elif type(new_cod) == int and line.strip() != '':
+
+                    entry = Entry()
+                elif line.strip() != '':
                     attr, val = line.split('=',1)
                     if len(val.split(',')) > 1:
-                        db[new_cod][attr]=[v.strip() for v in val.split(',')]
+                        entry.set(attr,[v.strip() for v in val.split(',')])
                     else:
-                        db[new_cod][attr]=val.strip()
+                        entry.set(attr,val.strip())
     except IOError:
         print ('Datafile {} don\'t exist'.format(filename))
     return db
 
 def print_db(db):
-    for k in db:
-        if 'name' in db[k].keys() and 'email' in db[k].keys():
-            print ('{0:>20s}: {1:<20s}'.format(db[k]['name'],db[k]['email']))
+    for k in db.entries:
+        #print ('{0:>20s}: {1:<20s}'.format(db.entries[k].item['name'],db.entries[k].item['email']))
+        print (db.entries[k])
     return 0
 
 def main():

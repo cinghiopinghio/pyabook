@@ -4,6 +4,15 @@ import argparse
 import os
 import email
 import re
+import itertools as it
+
+class EmailList(set):
+    def __str__(self):
+        s = ''
+        if len(self) > 0:
+            for ss in self:
+                s += ss + ','
+        return s[:-1]
 
 class Entry(dict):
     def __init__ (self):
@@ -28,18 +37,19 @@ class Databook(dict):
         self.format = values
     def find_duplicates(self):
         merges = 0
-        for id1,e1 in self.items():
-            for id2,e2 in self.items():
-                if id1 > id2:
-                    if e1 == e2:
-                        print (id1,id2,e1,e2)
-                        self.merge(id1,id2)
-                        merges += 1
-        #if merge > 0:
-        #    self.find_duplicates()
+        for (id1,e1),(id2,e2) in it.combinations(self.items(),2):
+            if e1 == e2:
+                print (id1,id2,e1,e2)
+                self.merge(id1,id2)
+                merges += 1
+                break
+        if merges > 0:
+            self.find_duplicates()
     def merge(self,id1,id2):
-        pass
-
+        new_entry = merge_entries(self[id1],self[id2])
+        self.pop(id1)
+        self.pop(id2)
+        self[id1] = new_entry
 
 def read_datafile(filename):
     datafile = os.path.expanduser(filename)
@@ -67,7 +77,7 @@ def read_datafile(filename):
                     # add item to entry
                     attr, val = line.split('=',1)
                     if attr == 'email':
-                        vset = set([v.strip() for v in val.split(',')])
+                        vset = EmailList([v.strip() for v in val.split(',')])
                         entry.set(attr,vset)
                         max_l = max([len(v) for v in vset])
                     else:
@@ -87,21 +97,68 @@ def read_datafile(filename):
     return db
 
 def print_db(db,limit=None):
+    print ('')
     for k in db.keys():
-        ems = db[k].item['email']
+        ems = db[k]['email']
         if type(ems) == str:
             ems = [ems]
         for em in ems:
-            max_mail = db.max_len['email']
-            max_name = db.max_len['name']
-            mail = '<'+em+'>'
-            name = db[k].item['name']
-            line = '{0:>{1}s} {2:{3}s}'.format(name,max_name,mail,max_mail)
+            name = db[k]['name']
+            line2 = '{0}\t{1}'.format(em,name)
             if limit is None:
+                mail = '<'+em+'>'
+                max_mail = db.max_len['email']
+                max_name = db.max_len['name']
+                line = '{0:>{1}s} {2:{3}s}'.format(name,max_name,mail,max_mail)
                 print (line)
-            elif re.search(limit, line, flags=re.I|re.A):
-                print (line)
+            elif re.search(limit, line2, flags=re.I|re.A):
+                print (line2)
     return 0
+
+def merge_entries(e1,e2):
+    new_entry = Entry()
+    for key in set(list(e1.keys())+list(e2.keys())):
+        if key in e1:
+            if key == 'email':
+                item1 = str(e1[key])
+            else:
+                item1 = e1[key]
+        else:
+            item1 = ''
+        if key in e2:
+            if key == 'email':
+                item2 = str(e2[key])
+            else:
+                item2 = e2[key]
+        else:
+            item2 = ''
+        print('\n\n---\nSet {0}:'.format(key))
+        print('1. {0}'.format(item1))
+        print('2. {0}'.format(item2))
+        print('3. merged: {0} {1}'.format(item1,item2))
+        print('4. remove {0}'.format(key))
+        print('5. type it yourself')
+
+        c = input('[12345]-->')
+        if c == '1':
+            new_entry[key] = item1
+        elif c == '2':
+            new_entry[key] = item2
+        elif c == '3':
+            if key == 'email':
+                new_entry[key] = e1[key].union(e2[key])
+            else:
+                new_entry[key] = '{0} {1}'.format(item1,item2)
+        elif c == '4':
+            pass
+        elif c == '5':
+            new_entry[key] = input('type it now: ')
+        else:
+            pass
+
+        for key in new_entry:
+            print('{0}\t{1}'.format(key,new_entry[key]))
+    return new_entry
 
 def get_sender_address(email):
     pass

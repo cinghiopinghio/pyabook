@@ -10,7 +10,7 @@ import difflib
 import tempfile
 import subprocess as sp
 
-ADDR = 'addrs'
+ADDR = 'buddies'
 CUTOFF=0.8
 DL = 0
 
@@ -152,9 +152,10 @@ def print_db(db,limit=None):
         print (s)
             
 def write_db(db,filename='~/.abook/addressbook.yaml'):
+    datafile = os.path.expanduser(filename)
     loc_db={}
     loc_db[ADDR] = db[ADDR]
-    with open(filename,'w') as fout:
+    with open(datafile,'w') as fout:
         yaml.dump(loc_db,fout)
 
 def merge_dbs(db1, db2):
@@ -174,8 +175,16 @@ def get_all_addresses(email):
     pass
 
 def add_sender(email,db):
-    raise NotImplementedError()
-    pass
+    s = sys.stdin.read()
+    msg = email.message_from_string(s)
+    ss = msg['From']
+    ss = ss.split('<')
+    ss = [_ss.strip(' <>\t\n"') for _ss in ss]
+    if len(ss) == 1:
+        ss = ['']+ ss
+
+    entry = {'name':ss[0], 'email':ss[1]}
+    return entry
 
 def add_all(email,db):
     raise NotImplementedError()
@@ -227,12 +236,17 @@ def main():
     args = parser.parse_args()
 
     db = read_datafile(args.datafile,args.db_type)
+    is_changed = False
     if args.print_db:
         print_db(db)
     elif args.duplicates:
         db.find_duplicates()
+        is_changed = True
     elif args.mutt_query is not None:
         print_db(db,limit=args.mutt_query)
+
+    if is_changed:
+        write_db(db,filename='~/.abook/addressbook.yaml')
 
 if __name__ == '__main__':
     main()

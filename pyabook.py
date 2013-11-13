@@ -5,6 +5,7 @@ import os
 import email
 import re
 import itertools as it
+import yaml
 
 class EmailList(set):
     def __str__(self):
